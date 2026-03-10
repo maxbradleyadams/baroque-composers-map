@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baroque Composers Across Europe (1600-1750)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    background: #0d0d1a;
+    color: #e0d6c8;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #header {
+    text-align: center;
+    padding: 10px 0 2px;
+    background: linear-gradient(180deg, #12122a 0%, #0d0d1a 100%);
+    flex-shrink: 0;
+  }
+  #header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #d4af37;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 12px rgba(212,175,55,0.3);
+  }
+  #header p {
+    font-size: 0.85rem;
+    color: #ffffff;
+    margin-top: 1px;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+
+  #year-display {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #d4af37;
+    text-shadow: 0 0 25px rgba(212,175,55,0.35);
+    padding: 2px 0;
+    flex-shrink: 0;
+  }
+
+  #main-content {
+    flex: 1;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  #left-panel {
+    width: 260px;
+    flex-shrink: 0;
+    background: rgba(13,13,26,0.97);
+    border-right: 1px solid #1e1e3a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 500;
+  }
+  .panel-section {
+    padding: 8px 14px;
+    border-bottom: 1px solid #1e1e3a;
+    flex-shrink: 0;
+  }
+  .panel-section h4 {
+    color: #d4af37;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  #active-composers {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 14px 6px;
+    min-height: 80px;
+  }
+  #active-composers::-webkit-scrollbar { width: 4px; }
+  #active-composers::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
+
+  .active-composer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 3px 0;
+    padding: 3px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.72rem;
+  }
+  .active-composer:hover { background: rgba(212,175,55,0.08); }
+  .active-mini-portrait {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    border: 1.5px solid;
+  }
+  .active-mini-portrait img {
+    width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0;
+  }
+  .active-mini-initials {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 8px; background: #1a1a2e;
+  }
+  .comp-name { font-weight: 600; color: #e0d6c8; font-size: 0.72rem; }
+  .comp-dates { color: #6a6a80; font-size: 0.6rem; }
+  .comp-city { color: #8a7f6e; font-size: 0.6rem; font-style: italic; }
+
+  /* TIMELINE EVENTS */
+  #timeline-section {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 14px 10px;
+  }
+  #timeline-section::-webkit-scrollbar { width: 4px; }
+  #timeline-section::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
+  .timeline-event {
+    padding: 4px 0 4px 14px;
+    border-left: 2px solid #2a2a4a;
+    margin: 2px 0;
+    font-size: 0.68rem;
+    line-height: 1.3;
+    position: relative;
+  }
+  .timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -4.5px; top: 8px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #d4af37;
+  }
+  .timeline-event.birth::before { background: #7de85d; }
+  .timeline-event.death::before { background: #e85d75; }
+  .timeline-event.move::before { background: #5db8e8; }
+  .timeline-event.work::before { background: #e8c95d; }
+  .event-year { color: #d4af37; font-weight: 600; }
+  .event-text { color: #b0a8a0; }
+  .event-source { color: #555568; font-size: 0.55rem; }
+
+  /* MAP */
+  #map { flex: 1; z-index: 1; }
+  .leaflet-container { background: #0a0a1e; }
+  .leaflet-control-zoom { display: none; }
+
+  /* RIGHT PANEL */
+  #right-panel {
+    position: absolute;
+    top: 8px; right: 8px;
+    z-index: 500;
+    background: rgba(13,13,26,0.92);
+    border: 1px solid #1e1e3a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    backdrop-filter: blur(8px);
+  }
+  #right-panel h4 {
+    color: #d4af37; font-size: 0.65rem; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; margin: 2px 0; font-size: 0.65rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+
+  /* CONTROLS */
+  #controls {
+    flex-shrink: 0;
+    background: linear-gradient(0deg, #12122a 0%, #0d0d1a 100%);
+    padding: 8px 30px 10px;
+    border-top: 1px solid #1e1e3a;
+  }
+  #slider-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #year-slider {
+    flex: 1;
+    -webkit-appearance: none; appearance: none;
+    height: 4px;
+    background: linear-gradient(90deg, #1e1e3a, #2a2a4e);
+    border-radius: 2px;
+    outline: none; cursor: pointer;
+  }
+  #year-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: radial-gradient(circle at 40% 40%, #e8d48b, #d4af37, #a0852a);
+    border-radius: 50%;
+    border: 2px solid #e8d48b;
+    box-shadow: 0 0 12px rgba(212,175,55,0.4);
+    cursor: pointer;
+  }
+  .slider-label { font-size: 0.8rem; color: #6a6050; min-width: 36px; font-weight: 600; }
+  #play-btn {
+    background: none;
+    border: 1.5px solid #d4af37; color: #d4af37;
+    padding: 4px 16px; border-radius: 20px; cursor: pointer;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.78rem; font-weight: 600; transition: all 0.3s; letter-spacing: 1px;
+  }
+  #play-btn:hover { background: rgba(212,175,55,0.12); }
+  #speed-btn {
+    background: none;
+    border: 1px solid #2a2a4a; color: #8a8a9a;
+    padding: 3px 10px; border-radius: 12px; cursor: pointer;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.72rem; transition: all 0.3s; min-width: 42px; text-align: center;
+  }
+  #speed-btn:hover { border-color: #d4af37; color: #d4af37; }
+
+  /* SOURCES PANEL */
+  #sources-toggle {
+    position: absolute;
+    bottom: 54px; right: 8px;
+    z-index: 500;
+    background: rgba(13,13,26,0.9);
+    border: 1px solid #1e1e3a; border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.62rem; color: #6a6a80; cursor: pointer;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    transition: all 0.3s;
+  }
+  #sources-toggle:hover { color: #d4af37; border-color: #d4af37; }
+  #sources-panel {
+    display: none;
+    position: absolute;
+    bottom: 82px; right: 8px;
+    z-index: 500;
+    background: rgba(13,13,26,0.96);
+    border: 1px solid #1e1e3a; border-radius: 8px;
+    padding: 12px 14px;
+    max-width: 360px; max-height: 300px;
+    overflow-y: auto;
+    backdrop-filter: blur(8px);
+  }
+  #sources-panel h4 { color: #d4af37; font-size: 0.7rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .source-item { font-size: 0.6rem; color: #8a8a9a; margin: 3px 0; line-height: 1.3; padding-left: 14px; text-indent: -14px; }
+  .source-item .src-num { color: #d4af37; font-weight: 600; }
+  #sources-panel::-webkit-scrollbar { width: 4px; }
+  #sources-panel::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 2px; }
+
+  /* Leaflet popup */
+  .leaflet-popup-content-wrapper {
+    background: rgba(18,18,42,0.96) !important;
+    border: 1px solid #d4af37 !important;
+    border-radius: 8px !important;
+    color: #e0d6c8 !important;
+    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+  }
+  .leaflet-popup-tip { background: rgba(18,18,42,0.96) !important; }
+  .leaflet-popup-content { margin: 10px 14px !important; }
+  .popup-name { color: #d4af37; font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+  .popup-dates { color: #8a7f6e; font-size: 0.8rem; margin-bottom: 5px; }
+  .popup-info { color: #b0a8a0; font-size: 0.8rem; line-height: 1.4; }
+  .popup-src { color: #555568; font-size: 0.65rem; margin-top: 3px; }
+  .leaflet-popup-close-button { color: #d4af37 !important; }
+
+  /* Composer marker icons */
+  .composer-icon { background: none !important; border: none !important; }
+  .ci-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: auto;
+  }
+  .ci-label {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: #ffffff;
+    white-space: nowrap;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(0,0,0,0.65);
+    margin-bottom: 2px;
+    text-shadow: 0 1px 2px #000;
+    pointer-events: none;
+  }
+  .ci-portrait {
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+  .ci-portrait:hover {
+    transform: scale(1.15);
+  }
+  .ci-portrait img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .ci-initials {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 700;
+    background: #14142a;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Baroque Composers Across Europe</h1>
+  <p>Tracing the masters across the continent, 1600 &ndash; 1750</p>
+</div>
+<div id="year-display">1600</div>
+
+<div id="main-content">
+  <div id="left-panel">
+    <div class="panel-section"><h4>Active Composers</h4></div>
+    <div id="active-composers"></div>
+    <div class="panel-section" style="border-bottom:none"><h4>Timeline</h4></div>
+    <div id="timeline-section"></div>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="right-panel">
+    <h4>Nationality</h4>
+    <div class="legend-item"><div class="legend-dot" style="background:#e85d75"></div> Italian</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5db8e8"></div> German</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e8c95d"></div> French</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7de85d"></div> English</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c85de8"></div> Iberian</div>
+    <div style="margin-top:6px;padding-top:5px;border-top:1px solid #1e1e3a;font-size:0.55rem;color:#555568;">
+      Hover portraits for details<br>Space = play/pause | Arrows = step
+    </div>
+  </div>
+
+  <div id="sources-toggle" onclick="toggleSources()">Sources &amp; References</div>
+  <div id="sources-panel">
+    <h4>Sources &amp; References</h4>
+    <div class="source-item"><span class="src-num">[1]</span> Bukofzer, M. <i>Music in the Baroque Era</i>. Norton, 1947.</div>
+    <div class="source-item"><span class="src-num">[2]</span> Palisca, C.V. <i>Baroque Music</i>. 3rd ed. Prentice Hall, 1991.</div>
+    <div class="source-item"><span class="src-num">[3]</span> Wolff, C. <i>Johann Sebastian Bach: The Learned Musician</i>. Norton, 2000.</div>
+    <div class="source-item"><span class="src-num">[4]</span> Hogwood, C. <i>Handel</i>. Thames &amp; Hudson, 2007.</div>
+    <div class="source-item"><span class="src-num">[5]</span> Talbot, M. <i>Vivaldi</i>. Oxford University Press, 2000.</div>
+    <div class="source-item"><span class="src-num">[6]</span> Kirkpatrick, R. <i>Domenico Scarlatti</i>. Princeton, 1953.</div>
+    <div class="source-item"><span class="src-num">[7]</span> Sadie, J.A. <i>Companion to Baroque Music</i>. UC Press, 1998.</div>
+    <div class="source-item"><span class="src-num">[8]</span> Hill, J.W. <i>Baroque Music</i>. Norton, 2005.</div>
+    <div class="source-item"><span class="src-num">[9]</span> <i>New Grove Dictionary of Music and Musicians</i>. 2nd ed. Macmillan, 2001.</div>
+    <div class="source-item"><span class="src-num">[10]</span> Whenham &amp; Wistreich, eds. <i>Cambridge Companion to Monteverdi</i>. CUP, 2007.</div>
+    <div class="source-item"><span class="src-num">[11]</span> Scott, R.H.F. <i>Jean-Baptiste Lully</i>. Peter Owen, 1973.</div>
+    <div class="source-item"><span class="src-num">[12]</span> Snyder, K.J. <i>Dieterich Buxtehude</i>. U. Rochester Press, 2007.</div>
+    <div class="source-item"><span class="src-num">[13]</span> Pendle, K. <i>Women &amp; Music: A History</i>. Indiana UP, 2001.</div>
+    <div class="source-item"><span class="src-num">[14]</span> Buelow, G.J. <i>A History of Baroque Music</i>. Indiana UP, 2004.</div>
+    <div class="source-item" style="margin-top:6px;color:#444;">Portraits: Wikimedia Commons (public domain). Map tiles: CartoDB / OSM.</div>
+  </div>
+</div>
+
+<div id="controls">
+  <div id="slider-container">
+    <span class="slider-label">1600</span>
+    <input type="range" id="year-slider" min="1600" max="1750" value="1600" step="1">
+    <span class="slider-label">1750</span>
+    <button id="play-btn">&#9654; Play</button>
+    <button id="speed-btn" onclick="cycleSpeed()">1x</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CITY COORDINATES [lat, lng]
+// ============================================================
+const cities = {
+  "Venice":[45.4408,12.3155],"Rome":[41.9028,12.4964],"Naples":[40.8518,14.2681],
+  "Florence":[43.7696,11.2558],"Milan":[45.4642,9.19],"Bologna":[44.4949,11.3426],
+  "Cremona":[45.1346,10.0227],"Mantua":[45.1564,10.7914],"Ferrara":[44.8381,11.6198],
+  "Turin":[45.0703,7.6869],"Lucca":[43.8376,10.4951],"Palermo":[38.1157,13.3615],
+  "Padua":[45.4064,11.8768],"Brescia":[45.5416,10.2118],
+  "Leipzig":[51.3397,12.3731],"Dresden":[51.0504,13.7373],"Weimar":[50.9795,11.3235],
+  "Hamburg":[53.5511,9.9937],"Berlin":[52.52,13.405],"Munich":[48.1351,11.582],
+  "Vienna":[48.2082,16.3738],"Salzburg":[47.8095,13.055],"Nuremberg":[49.4521,11.0767],
+  "Eisenach":[50.9807,10.3195],"Halle":[51.4969,11.9688],"Lubeck":[53.8655,10.6866],
+  "Arnstadt":[50.8343,10.9462],"Cothen":[51.75,11.9667],"Magdeburg":[52.1205,11.6276],
+  "Frankfurt":[50.1109,8.6821],"Luneburg":[53.2464,10.4115],"Erfurt":[50.9787,11.0328],
+  "Hanover":[52.3759,9.732],"Passau":[48.5665,13.4319],
+  "Paris":[48.8566,2.3522],"Versailles":[48.8049,2.1204],"Lyon":[45.764,4.8357],
+  "Dijon":[47.322,5.0415],"Rouen":[49.4432,1.0999],
+  "London":[51.5074,-0.1278],"Oxford":[51.752,-1.2577],"Dublin":[53.3498,-6.2603],
+  "Amsterdam":[52.3676,4.9041],"Antwerp":[51.2194,4.4025],
+  "Madrid":[40.4168,-3.7038],"Lisbon":[38.7223,-9.1393],"Seville":[37.3891,-5.9845],
+  "Barcelona":[41.3874,2.1686],
+  "Copenhagen":[55.6761,12.5683],"Stockholm":[59.3293,18.0686],
+  "Warsaw":[52.2297,21.0122],"Prague":[50.0755,14.4378],
+  "Bergamo":[45.6983,9.6773],"Breslau":[51.1079,17.0385],
+  "Turin":[45.0703,7.6869],"Genoa":[44.4056,8.9463],
+};
+
+// ============================================================
+// PORTRAIT FILENAMES (Wikimedia Commons, public domain)
+// null = no known portrait, will show initials
+// ============================================================
+const portraitFiles = {
+  "Claudio Monteverdi": "Bernardo_Strozzi_-_Claudio_Monteverdi_(c.1630).jpg",
+  "Heinrich Schutz": "Heinrich_Sch%C3%BCtz_2_cropped.png",
+  "Girolamo Frescobaldi": "Girolamo_Frescobaldi_(1583-1643),_engraving_by_Claude_Mellan_(1619).jpg",
+  "Jean-Baptiste Lully": "Paul_Mignard_-_Jean-Baptiste_Lully.jpg",
+  "Arcangelo Corelli": "Arcangelo_Corelli.jpg",
+  "Henry Purcell": "Henry_Purcell_Closterman.jpg",
+  "Alessandro Scarlatti": "Solimena,_Francesco_-_Scarlatti,_Alessandro.jpeg",
+  "Francois Couperin": "Francois_Couperin_2.jpg",
+  "Antonio Vivaldi": "Antonio_Vivaldi_portrait.jpg",
+  "Georg Philipp Telemann": "Telemann.jpg",
+  "Jean-Philippe Rameau": "Jean-Philippe_Rameau_by_Jacques_Aved.jpg",
+  "Johann Sebastian Bach": "Johann_Sebastian_Bach.jpg",
+  "George Frideric Handel": "George_Frideric_Handel_by_Balthasar_DennerFXD.jpg",
+  "Domenico Scarlatti": "Retrato_de_Domenico_Scarlatti.jpg",
+  "Dieterich Buxtehude": "Imagebuxtehude.jpg",
+  "Tomaso Albinoni": "TommasoAlbinoni.jpg",
+  "Giuseppe Tartini": "Tartini.jpg",
+  "Giovanni Battista Pergolesi": "G.B.Pergolesi.jpg",
+  "Marc-Antoine Charpentier": null,
+  "Johann Pachelbel": "Pachelbel.jpg",
+  "Giovanni Gabrieli": null,
+  "Carlo Gesualdo": "Carlo-gesualdo-d%C3%A9tail.JPG",
+  "Barbara Strozzi": "Barbara_Strozzi_1.jpg",
+  "Marin Marais": "Portrait_de_Marin_Marais_(Mus%C3%A9e_de_la_musique,_Paris)_(40597883913).jpg",
+  "Elisabeth Jacquet de la Guerre": "Elisabeth_Jacquet_de_La_Guerre-full.jpg",
+  "Jan Dismas Zelenka": "Zelenka,_Jan_Dismas.JPG",
+  "Francesco Geminiani": "Francesco_Geminiani.jpg",
+  "Agostino Steffani": null,
+  "Georg Muffat": "Georgius_Muffat.JPG",
+  "Giacomo Carissimi": null,
+  "Antonio Caldara": "Antonio_Caldara_(I-Bc,_B_11881,_B_39202).jpg",
+  "Johann Adolph Hasse": "Johann_Adolf_Hasse.jpg",
+  "Johann Joseph Fux": "Johann_Joseph_Fux.jpg",
+  "Sylvius Leopold Weiss": "Silvius_Leopold_Weiss_(par_Folin).jpg",
+  "Pietro Locatelli": null,
+  "Benedetto Marcello": "Benedetto_Marcello_by_Vincenzo_Roscioni.jpg",
+  "Alessandro Stradella": "Alessandro_Stradella.png",
+  "Giovanni Battista Sammartini": "Giovanni_Battista_Sammartini,_portrait_by_Riccardi_(detail).jpg",
+  "Jeremiah Clarke": null,
+};
+
+function getPortraitUrl(name) {
+  const f = portraitFiles[name];
+  if (!f) return null;
+  return "https://commons.wikimedia.org/wiki/Special:FilePath/" + f + "?width=80";
+}
+
+// ============================================================
+// COMPOSER DATA
+// ============================================================
+const composers = [
+  {
+    name: "Claudio Monteverdi", born: 1567, died: 1643,
+    nationality: "Italian", color: "#e85d75", fame: 5, src: "[7][10]",
+    locations: [
+      {city: "Cremona", from: 1567, to: 1590, note: "Born in Cremona; studied with Marc'Antonio Ingegneri"},
+      {city: "Mantua", from: 1590, to: 1613, note: "Court musician to Duke Vincenzo I; premiered L'Orfeo (1607)"},
+      {city: "Venice", from: 1613, to: 1643, note: "Maestro di cappella at St Mark's; composed L'incoronazione di Poppea"}
+    ]
+  },
+  {
+    name: "Giovanni Gabrieli", born: 1557, died: 1612,
+    nationality: "Italian", color: "#e85d75", fame: 4, src: "[1][9]",
+    locations: [
+      {city: "Venice", from: 1557, to: 1575, note: "Born in Venice; nephew and student of Andrea Gabrieli"},
+      {city: "Munich", from: 1575, to: 1579, note: "Studied with Orlando di Lasso at the Bavarian court"},
+      {city: "Venice", from: 1585, to: 1612, note: "Organist at St Mark's; pioneered polychoral and instrumental music; teacher of Schutz"}
+    ]
+  },
+  {
+    name: "Carlo Gesualdo", born: 1566, died: 1613,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[1][9]",
+    locations: [
+      {city: "Naples", from: 1566, to: 1594, note: "Prince of Venosa; notorious for extreme chromaticism and for murdering his first wife"},
+      {city: "Ferrara", from: 1594, to: 1597, note: "Married Leonora d'Este; immersed in Ferrarese musical culture"},
+      {city: "Naples", from: 1597, to: 1613, note: "Retired to his castle near Naples; composed radical madrigals in isolation"}
+    ]
+  },
+  {
+    name: "Heinrich Schutz", born: 1585, died: 1672,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[2][9]",
+    locations: [
+      {city: "Venice", from: 1609, to: 1613, note: "Studied with Giovanni Gabrieli in Venice"},
+      {city: "Dresden", from: 1615, to: 1628, note: "Kapellmeister at the Saxon court"},
+      {city: "Venice", from: 1628, to: 1629, note: "Second study trip; worked alongside Monteverdi"},
+      {city: "Copenhagen", from: 1633, to: 1635, note: "Served at the Danish court during Thirty Years' War disruptions"},
+      {city: "Dresden", from: 1635, to: 1672, note: "Returned to Dresden; composed Musikalische Exequien"}
+    ]
+  },
+  {
+    name: "Girolamo Frescobaldi", born: 1583, died: 1643,
+    nationality: "Italian", color: "#e85d75", fame: 4, src: "[1][9]",
+    locations: [
+      {city: "Ferrara", from: 1583, to: 1607, note: "Born in Ferrara; trained in the rich traditions of the Este court"},
+      {city: "Antwerp", from: 1607, to: 1608, note: "Brief period in the Spanish Netherlands"},
+      {city: "Rome", from: 1608, to: 1628, note: "Organist at St Peter's Basilica"},
+      {city: "Florence", from: 1628, to: 1634, note: "Served the Medici court"},
+      {city: "Rome", from: 1634, to: 1643, note: "Returned to St Peter's; Fiori musicali influenced J.S. Bach"}
+    ]
+  },
+  {
+    name: "Giacomo Carissimi", born: 1605, died: 1674,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[1][14]",
+    locations: [
+      {city: "Rome", from: 1628, to: 1674, note: "Maestro di cappella at Sant'Apollinare; father of the oratorio; teacher of Charpentier and Scarlatti"}
+    ]
+  },
+  {
+    name: "Barbara Strozzi", born: 1619, died: 1677,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[9][13]",
+    locations: [
+      {city: "Venice", from: 1619, to: 1677, note: "Born in Venice; adopted daughter of poet Giulio Strozzi; most prolific composer of secular cantatas of the era; published 8 volumes of vocal music"}
+    ]
+  },
+  {
+    name: "Jean-Baptiste Lully", born: 1632, died: 1687,
+    nationality: "French", color: "#e8c95d", fame: 5, src: "[2][11]",
+    locations: [
+      {city: "Florence", from: 1632, to: 1646, note: "Born Giovanni Battista Lulli in Florence"},
+      {city: "Paris", from: 1646, to: 1687, note: "Superintendent of the King's Music under Louis XIV; created the tragedie en musique; died from conducting staff injury"}
+    ]
+  },
+  {
+    name: "Dieterich Buxtehude", born: 1637, died: 1707,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[12][9]",
+    locations: [
+      {city: "Copenhagen", from: 1637, to: 1660, note: "Born probably in Helsingborg; early career in Denmark"},
+      {city: "Lubeck", from: 1668, to: 1707, note: "Organist at Marienkirche for 39 years; famous Abendmusiken concerts; Bach walked 400km to hear him"}
+    ]
+  },
+  {
+    name: "Marc-Antoine Charpentier", born: 1643, died: 1704,
+    nationality: "French", color: "#e8c95d", fame: 4, src: "[2][9]",
+    locations: [
+      {city: "Rome", from: 1667, to: 1670, note: "Studied with Carissimi in Rome; absorbed Italian style"},
+      {city: "Paris", from: 1670, to: 1704, note: "Maitre de musique at Sainte-Chapelle; composed the Te Deum; rival of Lully"}
+    ]
+  },
+  {
+    name: "Arcangelo Corelli", born: 1653, died: 1713,
+    nationality: "Italian", color: "#e85d75", fame: 5, src: "[1][7]",
+    locations: [
+      {city: "Bologna", from: 1666, to: 1675, note: "Admitted to Accademia Filarmonica at age 17"},
+      {city: "Rome", from: 1675, to: 1713, note: "Patronized by Cardinal Ottoboni; established the concerto grosso form"}
+    ]
+  },
+  {
+    name: "Johann Pachelbel", born: 1653, died: 1706,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[8][9]",
+    locations: [
+      {city: "Nuremberg", from: 1653, to: 1669, note: "Born in Nuremberg"},
+      {city: "Vienna", from: 1673, to: 1677, note: "Deputy organist at St. Stephen's Cathedral"},
+      {city: "Eisenach", from: 1677, to: 1678, note: "Court organist; befriended the Bach family"},
+      {city: "Erfurt", from: 1678, to: 1690, note: "Organist at Predigerkirche; taught J.S. Bach's older brother"},
+      {city: "Nuremberg", from: 1695, to: 1706, note: "Organist at St. Sebaldus; composed Canon in D"}
+    ]
+  },
+  {
+    name: "Georg Muffat", born: 1653, died: 1704,
+    nationality: "German", color: "#5db8e8", fame: 3, src: "[7][14]",
+    locations: [
+      {city: "Paris", from: 1663, to: 1669, note: "Born in Megeve, Savoy; studied with Lully in Paris"},
+      {city: "Salzburg", from: 1678, to: 1682, note: "Organist at the Salzburg Cathedral"},
+      {city: "Rome", from: 1682, to: 1683, note: "Studied with Corelli in Rome; fused French and Italian styles"},
+      {city: "Passau", from: 1690, to: 1704, note: "Kapellmeister in Passau; published influential orchestral suites"}
+    ]
+  },
+  {
+    name: "Agostino Steffani", born: 1654, died: 1728,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Munich", from: 1667, to: 1688, note: "Born near Padua; moved to Munich as choirboy; became court composer"},
+      {city: "Hanover", from: 1688, to: 1710, note: "Kapellmeister in Hanover; also served as diplomat; important in developing German opera"},
+    ]
+  },
+  {
+    name: "Marin Marais", born: 1656, died: 1728,
+    nationality: "French", color: "#e8c95d", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Paris", from: 1656, to: 1728, note: "Born in Paris; studied with Lully and Sainte-Colombe; greatest viol virtuoso of his age; composed 5 books of Pieces de violes"}
+    ]
+  },
+  {
+    name: "Henry Purcell", born: 1659, died: 1695,
+    nationality: "English", color: "#7de85d", fame: 5, src: "[7][9]",
+    locations: [
+      {city: "London", from: 1659, to: 1695, note: "Born in Westminster; organist at Westminster Abbey; composed Dido and Aeneas (1689); died at 36"}
+    ]
+  },
+  {
+    name: "Alessandro Scarlatti", born: 1660, died: 1725,
+    nationality: "Italian", color: "#e85d75", fame: 4, src: "[2][9]",
+    locations: [
+      {city: "Palermo", from: 1660, to: 1672, note: "Born in Palermo, Sicily"},
+      {city: "Rome", from: 1672, to: 1684, note: "Patronized by Queen Christina of Sweden"},
+      {city: "Naples", from: 1684, to: 1702, note: "Maestro di cappella at the Royal Chapel"},
+      {city: "Rome", from: 1702, to: 1708, note: "Brief return to Rome"},
+      {city: "Naples", from: 1708, to: 1725, note: "Established Neapolitan opera seria; composed over 100 operas"}
+    ]
+  },
+  {
+    name: "Elisabeth Jacquet de la Guerre", born: 1665, died: 1729,
+    nationality: "French", color: "#e8c95d", fame: 3, src: "[9][13]",
+    locations: [
+      {city: "Paris", from: 1665, to: 1729, note: "Child prodigy who performed for Louis XIV at age 5; first French woman to compose an opera (Cephale et Procris, 1694); pioneered French violin sonatas"}
+    ]
+  },
+  {
+    name: "Francois Couperin", born: 1668, died: 1733,
+    nationality: "French", color: "#e8c95d", fame: 4, src: "[2][7]",
+    locations: [
+      {city: "Paris", from: 1668, to: 1733, note: "Born into a dynasty of musicians; organist at Versailles; called 'Couperin le Grand'; master of French harpsichord style"}
+    ]
+  },
+  {
+    name: "Tomaso Albinoni", born: 1671, died: 1751,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Venice", from: 1671, to: 1751, note: "Born in Venice; composed 50+ operas; Bach studied his works; the famous 'Adagio' was actually composed by Giazotto in 1958"}
+    ]
+  },
+  {
+    name: "Antonio Vivaldi", born: 1678, died: 1741,
+    nationality: "Italian", color: "#e85d75", fame: 5, src: "[5][9]",
+    locations: [
+      {city: "Venice", from: 1678, to: 1718, note: "Born in Venice; ordained 'il Prete Rosso'; violin master at the Pieta"},
+      {city: "Mantua", from: 1718, to: 1720, note: "Maestro di Cappella to Prince Philip of Hesse-Darmstadt"},
+      {city: "Rome", from: 1723, to: 1724, note: "Performed for Pope; staged operas in Rome"},
+      {city: "Venice", from: 1724, to: 1740, note: "Returned to Venice; published The Four Seasons (1725); wrote 500+ concertos"},
+      {city: "Vienna", from: 1740, to: 1741, note: "Traveled seeking patronage; died in poverty; buried in a pauper's grave"}
+    ]
+  },
+  {
+    name: "Jan Dismas Zelenka", born: 1679, died: 1745,
+    nationality: "German", color: "#5db8e8", fame: 3, src: "[9][14]",
+    locations: [
+      {city: "Prague", from: 1679, to: 1710, note: "Born in Lounovice, Bohemia; studied in Prague"},
+      {city: "Dresden", from: 1710, to: 1745, note: "Served at the Dresden court alongside Hasse; composed bold, complex sacred works; overlooked in his time, now recognized as a master"}
+    ]
+  },
+  {
+    name: "Georg Philipp Telemann", born: 1681, died: 1767,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[8][9]",
+    locations: [
+      {city: "Magdeburg", from: 1681, to: 1701, note: "Born in Magdeburg; largely self-taught"},
+      {city: "Leipzig", from: 1701, to: 1705, note: "Founded Collegium Musicum; directed the Opera"},
+      {city: "Frankfurt", from: 1712, to: 1721, note: "Kapellmeister at the Barfusserkirche"},
+      {city: "Hamburg", from: 1721, to: 1767, note: "Music director of five churches and Hamburg Opera; most prolific Baroque composer (3,000+ works)"}
+    ]
+  },
+  {
+    name: "Jean-Philippe Rameau", born: 1683, died: 1764,
+    nationality: "French", color: "#e8c95d", fame: 5, src: "[2][9]",
+    locations: [
+      {city: "Dijon", from: 1683, to: 1706, note: "Born in Dijon; son of an organist"},
+      {city: "Lyon", from: 1713, to: 1715, note: "Served as organist in Lyon"},
+      {city: "Paris", from: 1722, to: 1764, note: "Published Treatise on Harmony (1722); became leading French opera composer; transformed music theory"}
+    ]
+  },
+  {
+    name: "Johann Sebastian Bach", born: 1685, died: 1750,
+    nationality: "German", color: "#5db8e8", fame: 5, src: "[3][9]",
+    locations: [
+      {city: "Eisenach", from: 1685, to: 1695, note: "Born into Germany's most distinguished musical family"},
+      {city: "Luneburg", from: 1700, to: 1702, note: "Studied at the Michaelisschule"},
+      {city: "Arnstadt", from: 1703, to: 1707, note: "First organ post; walked 400km to Lubeck to hear Buxtehude"},
+      {city: "Weimar", from: 1708, to: 1717, note: "Court organist and concertmaster; most prolific organ works period"},
+      {city: "Cothen", from: 1717, to: 1723, note: "Kapellmeister; composed Brandenburg Concertos, cello suites"},
+      {city: "Leipzig", from: 1723, to: 1750, note: "Cantor of Thomasschule; Mass in B minor, St Matthew Passion, Art of Fugue"}
+    ]
+  },
+  {
+    name: "George Frideric Handel", born: 1685, died: 1759,
+    nationality: "German", color: "#5db8e8", fame: 5, src: "[4][9]",
+    locations: [
+      {city: "Halle", from: 1685, to: 1703, note: "Born in Halle; early musical training"},
+      {city: "Hamburg", from: 1703, to: 1706, note: "Violinist at the Hamburg Opera"},
+      {city: "Rome", from: 1706, to: 1710, note: "Immersed in Italian style; patronized by Cardinal Ottoboni"},
+      {city: "London", from: 1712, to: 1759, note: "Settled in London; composed Messiah (1741), Water Music (1717); became British citizen 1727"}
+    ]
+  },
+  {
+    name: "Domenico Scarlatti", born: 1685, died: 1757,
+    nationality: "Italian", color: "#e85d75", fame: 5, src: "[6][9]",
+    locations: [
+      {city: "Naples", from: 1685, to: 1705, note: "Born in Naples; son of Alessandro Scarlatti"},
+      {city: "Venice", from: 1705, to: 1709, note: "Met Handel; famous keyboard contest at Cardinal Ottoboni's"},
+      {city: "Rome", from: 1709, to: 1719, note: "Maestro di cappella at the Vatican"},
+      {city: "Lisbon", from: 1719, to: 1729, note: "Music master to Princess Maria Barbara"},
+      {city: "Madrid", from: 1729, to: 1757, note: "Followed Maria Barbara to Spain; composed 555 keyboard sonatas"}
+    ]
+  },
+  {
+    name: "Francesco Geminiani", born: 1687, died: 1762,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Lucca", from: 1687, to: 1707, note: "Born in Lucca; early training"},
+      {city: "Rome", from: 1707, to: 1714, note: "Studied with Corelli in Rome"},
+      {city: "London", from: 1714, to: 1749, note: "Settled in London; leading violinist and theorist; published The Art of Playing on the Violin"},
+      {city: "Dublin", from: 1749, to: 1762, note: "Spent final years between Dublin and Paris"}
+    ]
+  },
+  {
+    name: "Giuseppe Tartini", born: 1692, died: 1770,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Padua", from: 1692, to: 1723, note: "Born in Pirano (Venetian Istria); studied in Padua; composed Devil's Trill Sonata"},
+      {city: "Prague", from: 1723, to: 1726, note: "Served in the orchestra of Count Kinsky"},
+      {city: "Padua", from: 1726, to: 1770, note: "Founded influential violin school in Padua; discovered combination tones"}
+    ]
+  },
+  {
+    name: "Giovanni Battista Pergolesi", born: 1710, died: 1736,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[2][9]",
+    locations: [
+      {city: "Naples", from: 1710, to: 1736, note: "Born in Jesi; worked in Naples; La serva padrona (1733); Stabat Mater; died of TB at 26"}
+    ]
+  },
+  {
+    name: "Alessandro Stradella", born: 1639, died: 1682,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Rome", from: 1653, to: 1677, note: "Active in Rome; composed operas, oratorios, and cantatas; led a scandalous life"},
+      {city: "Venice", from: 1677, to: 1678, note: "Fled Rome after an affair; survived an assassination attempt in Turin"},
+      {city: "Turin", from: 1678, to: 1682, note: "Murdered in Genoa by hired assassins; pioneered the concerto grosso texture"}
+    ]
+  },
+  {
+    name: "Johann Joseph Fux", born: 1660, died: 1741,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[9][14]",
+    locations: [
+      {city: "Vienna", from: 1696, to: 1741, note: "Born in Styria; Hofkapellmeister to the Habsburg court; wrote Gradus ad Parnassum (1725), the counterpoint textbook used by Mozart, Haydn, and Beethoven"}
+    ]
+  },
+  {
+    name: "Antonio Caldara", born: 1670, died: 1736,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[9][14]",
+    locations: [
+      {city: "Venice", from: 1670, to: 1699, note: "Born in Venice; chorister at St Mark's under Legrenzi"},
+      {city: "Mantua", from: 1699, to: 1707, note: "Maestro di cappella to the Duke of Mantua"},
+      {city: "Rome", from: 1709, to: 1716, note: "Worked under Ruspoli patronage in Rome"},
+      {city: "Vienna", from: 1716, to: 1736, note: "Vice-Kapellmeister under Fux; composed over 90 operas and 30+ oratorios"}
+    ]
+  },
+  {
+    name: "Benedetto Marcello", born: 1686, died: 1739,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Venice", from: 1686, to: 1728, note: "Venetian nobleman and composer; published Il teatro alla moda satirizing opera; composed Estro poetico-armonico (50 psalm settings)"},
+      {city: "Brescia", from: 1728, to: 1739, note: "Served as magistrate in Brescia; continued composing until death"}
+    ]
+  },
+  {
+    name: "Sylvius Leopold Weiss", born: 1687, died: 1750,
+    nationality: "German", color: "#5db8e8", fame: 3, src: "[9][14]",
+    locations: [
+      {city: "Breslau", from: 1687, to: 1706, note: "Born in Breslau (Wroclaw); trained by his father"},
+      {city: "Rome", from: 1710, to: 1714, note: "Served Prince Alexander Sobieski in Rome; met D. Scarlatti"},
+      {city: "Dresden", from: 1718, to: 1750, note: "Lutenist at the Saxon court; greatest lute virtuoso of the Baroque; friend of J.S. Bach; left over 600 compositions"}
+    ]
+  },
+  {
+    name: "Johann Adolph Hasse", born: 1699, died: 1783,
+    nationality: "German", color: "#5db8e8", fame: 4, src: "[9][14]",
+    locations: [
+      {city: "Hamburg", from: 1699, to: 1718, note: "Born near Hamburg; early career in north Germany"},
+      {city: "Naples", from: 1722, to: 1730, note: "Studied with Alessandro Scarlatti; married the famous soprano Faustina Bordoni"},
+      {city: "Dresden", from: 1731, to: 1763, note: "Kapellmeister at the Saxon court; most popular opera composer in Europe; more famous than Bach in his lifetime"},
+      {city: "Vienna", from: 1764, to: 1783, note: "Final years in Vienna and Venice"}
+    ]
+  },
+  {
+    name: "Pietro Locatelli", born: 1695, died: 1764,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[7][9]",
+    locations: [
+      {city: "Bergamo", from: 1695, to: 1711, note: "Born in Bergamo; early violin training"},
+      {city: "Rome", from: 1711, to: 1723, note: "Studied with Corelli in Rome"},
+      {city: "Amsterdam", from: 1729, to: 1764, note: "Settled in Amsterdam; L'Arte del Violino (1733) pushed violin technique to extremes; precursor to Paganini"}
+    ]
+  },
+  {
+    name: "Giovanni Battista Sammartini", born: 1700, died: 1775,
+    nationality: "Italian", color: "#e85d75", fame: 3, src: "[9][14]",
+    locations: [
+      {city: "Milan", from: 1700, to: 1775, note: "Born and worked in Milan; bridge between Baroque and Classical; teacher of Gluck; pioneered the early symphony form"}
+    ]
+  },
+];
+
+// ============================================================
+// TIMELINE EVENTS
+// ============================================================
+const timelineEvents = [
+  {year: 1567, type: "birth", text: "Monteverdi born in Cremona", src: "[10]"},
+  {year: 1583, type: "birth", text: "Frescobaldi born in Ferrara", src: "[9]"},
+  {year: 1585, type: "birth", text: "Schutz born in Kostritz", src: "[9]"},
+  {year: 1600, type: "work", text: "Peri's Euridice premiered — earliest surviving complete opera", src: "[1]"},
+  {year: 1605, type: "work", text: "Monteverdi publishes Fifth Book of Madrigals, sparking 'prima vs seconda pratica' debate", src: "[10]"},
+  {year: 1607, type: "work", text: "Monteverdi's L'Orfeo premiered in Mantua", src: "[10]"},
+  {year: 1608, type: "move", text: "Frescobaldi appointed organist at St Peter's, Rome", src: "[1]"},
+  {year: 1609, type: "move", text: "Schutz travels to Venice to study with Gabrieli", src: "[2]"},
+  {year: 1612, type: "death", text: "Giovanni Gabrieli dies in Venice", src: "[9]"},
+  {year: 1613, type: "move", text: "Monteverdi appointed Maestro di cappella at St Mark's, Venice", src: "[10]"},
+  {year: 1613, type: "death", text: "Gesualdo dies in isolation near Naples", src: "[9]"},
+  {year: 1619, type: "birth", text: "Barbara Strozzi born in Venice", src: "[13]"},
+  {year: 1632, type: "birth", text: "Lully born in Florence", src: "[11]"},
+  {year: 1637, type: "work", text: "First public opera house opens in Venice (Teatro San Cassiano)", src: "[1]"},
+  {year: 1643, type: "death", text: "Monteverdi dies in Venice; Frescobaldi dies in Rome", src: "[10]"},
+  {year: 1646, type: "move", text: "Young Lully moves from Florence to Paris", src: "[11]"},
+  {year: 1653, type: "birth", text: "Corelli and Pachelbel born", src: "[9]"},
+  {year: 1659, type: "birth", text: "Purcell born in Westminster", src: "[9]"},
+  {year: 1665, type: "birth", text: "Elisabeth Jacquet de la Guerre born in Paris", src: "[13]"},
+  {year: 1668, type: "move", text: "Buxtehude becomes organist at Marienkirche, Lubeck", src: "[12]"},
+  {year: 1670, type: "move", text: "Charpentier returns from Rome to Paris", src: "[9]"},
+  {year: 1675, type: "move", text: "Corelli settles in Rome", src: "[7]"},
+  {year: 1677, type: "death", text: "Barbara Strozzi dies in Venice — left 8 published volumes", src: "[13]"},
+  {year: 1678, type: "birth", text: "Vivaldi born in Venice", src: "[5]"},
+  {year: 1682, type: "move", text: "Georg Muffat studies with Corelli in Rome", src: "[14]"},
+  {year: 1685, type: "birth", text: "Bach, Handel, and D. Scarlatti all born — annus mirabilis of Baroque music", src: "[3][4][6]"},
+  {year: 1687, type: "death", text: "Lully dies in Paris — gangrene from conducting staff injury", src: "[11]"},
+  {year: 1689, type: "work", text: "Purcell's Dido and Aeneas premiered in London", src: "[9]"},
+  {year: 1694, type: "work", text: "Elisabeth Jacquet de la Guerre's opera Cephale et Procris premiered", src: "[13]"},
+  {year: 1695, type: "death", text: "Purcell dies in London at age 36", src: "[9]"},
+  {year: 1700, type: "move", text: "Young Bach walks to Luneburg to study", src: "[3]"},
+  {year: 1703, type: "move", text: "Bach takes first organ post in Arnstadt; Handel joins Hamburg Opera", src: "[3][4]"},
+  {year: 1705, type: "move", text: "Bach walks 400km to Lubeck to hear Buxtehude play organ", src: "[3][12]"},
+  {year: 1706, type: "move", text: "Handel travels to Italy; studies Italian operatic style in Rome", src: "[4]"},
+  {year: 1707, type: "death", text: "Buxtehude dies in Lubeck", src: "[12]"},
+  {year: 1708, type: "move", text: "Bach moves to Weimar as court organist", src: "[3]"},
+  {year: 1710, type: "birth", text: "Pergolesi born in Jesi", src: "[9]"},
+  {year: 1712, type: "move", text: "Handel settles permanently in London", src: "[4]"},
+  {year: 1713, type: "death", text: "Corelli dies in Rome", src: "[7]"},
+  {year: 1714, type: "move", text: "Geminiani moves from Rome to London", src: "[9]"},
+  {year: 1717, type: "move", text: "Bach moves to Cothen; Handel premieres Water Music on the Thames", src: "[3][4]"},
+  {year: 1719, type: "move", text: "Domenico Scarlatti moves to Lisbon as royal music master", src: "[6]"},
+  {year: 1721, type: "work", text: "Bach completes Brandenburg Concertos; Telemann moves to Hamburg", src: "[3][9]"},
+  {year: 1722, type: "work", text: "Bach: Well-Tempered Clavier Book I; Rameau: Treatise on Harmony", src: "[3][9]"},
+  {year: 1723, type: "move", text: "Bach moves to Leipzig as Cantor — will remain 27 years", src: "[3]"},
+  {year: 1725, type: "work", text: "Vivaldi publishes The Four Seasons", src: "[5]"},
+  {year: 1725, type: "death", text: "Alessandro Scarlatti dies in Naples", src: "[9]"},
+  {year: 1727, type: "work", text: "Handel becomes British citizen; composes Coronation Anthems", src: "[4]"},
+  {year: 1729, type: "move", text: "D. Scarlatti follows Maria Barbara from Lisbon to Madrid", src: "[6]"},
+  {year: 1729, type: "work", text: "Bach's St Matthew Passion premiered in Leipzig", src: "[3]"},
+  {year: 1733, type: "work", text: "Pergolesi's La serva padrona premiered in Naples", src: "[2]"},
+  {year: 1736, type: "death", text: "Pergolesi dies of tuberculosis at 26", src: "[9]"},
+  {year: 1741, type: "work", text: "Handel composes Messiah in 24 days", src: "[4]"},
+  {year: 1741, type: "death", text: "Vivaldi dies impoverished in Vienna", src: "[5]"},
+  {year: 1747, type: "work", text: "Bach visits Frederick the Great; composes Musical Offering", src: "[3]"},
+  {year: 1749, type: "work", text: "Handel's Music for the Royal Fireworks premiered", src: "[4]"},
+  {year: 1725, type: "work", text: "Fux publishes Gradus ad Parnassum — the counterpoint textbook for centuries", src: "[14]"},
+  {year: 1729, type: "move", text: "Locatelli settles in Amsterdam; pushes violin technique to extremes", src: "[9]"},
+  {year: 1731, type: "move", text: "Hasse becomes Kapellmeister in Dresden — most popular opera composer in Europe", src: "[14]"},
+  {year: 1741, type: "death", text: "Fux dies in Vienna", src: "[9]"},
+  {year: 1750, type: "death", text: "J.S. Bach dies in Leipzig — the symbolic end of the Baroque era", src: "[3]"},
+  {year: 1750, type: "death", text: "Weiss dies in Dresden — end of the golden age of the lute", src: "[14]"},
+];
+timelineEvents.sort((a, b) => a.year - b.year);
+
+// ============================================================
+// INITIALIZE MAP
+// ============================================================
+const map = L.map('map', {
+  center: [48.5, 10],
+  zoom: 5,
+  minZoom: 4,
+  maxZoom: 8,
+  zoomControl: false,
+  attributionControl: false,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  subdomains: 'abcd', maxZoom: 19,
+}).addTo(map);
+
+// ============================================================
+// CREATE COMPOSER MARKERS
+// ============================================================
+let composerMarkers = [];
+
+function createComposerIcon(comp) {
+  const size = 26 + comp.fame * 4; // 38-46px for fame 3-5
+  const initials = comp.name.split(' ').map(w => w[0]).join('');
+  const lastName = comp.name.split(' ').pop();
+  const url = getPortraitUrl(comp.name);
+  const fontSize = Math.round(size / 2.8);
+  const containerW = 120;
+  const labelH = 16;
+  const totalH = labelH + 3 + size;
+
+  let imgHtml = '';
+  if (url) {
+    imgHtml = `<img src="${url}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+                    onerror="this.remove()">`;
+  }
+
+  const html = `
+    <div class="ci-wrap" style="width:${containerW}px;">
+      <div class="ci-label">${lastName}</div>
+      <div class="ci-portrait" style="width:${size}px;height:${size}px;border:3px solid ${comp.color};
+           box-shadow:0 0 10px ${comp.color}40, 0 2px 6px rgba(0,0,0,0.6);">
+        <div class="ci-initials" style="color:${comp.color};font-size:${fontSize}px;">${initials}</div>
+        ${imgHtml}
+      </div>
+    </div>`;
+
+  return L.divIcon({
+    className: 'composer-icon',
+    html: html,
+    iconSize: [containerW, totalH],
+    iconAnchor: [containerW / 2, labelH + 3 + size / 2],
+  });
+}
+
+composers.forEach(comp => {
+  const icon = createComposerIcon(comp);
+  const marker = L.marker([0, 0], {
+    icon: icon,
+    zIndexOffset: comp.fame * 100,
+  });
+  marker.bindPopup('', { maxWidth: 300, closeButton: true });
+  marker.composerData = comp;
+
+  composerMarkers.push({ marker, composer: comp, visible: false, icon });
+});
+
+// ============================================================
+// UPDATE
+// ============================================================
+const slider = document.getElementById('year-slider');
+const yearDisplay = document.getElementById('year-display');
+const playBtn = document.getElementById('play-btn');
+const activeListDiv = document.getElementById('active-composers');
+const timelineDiv = document.getElementById('timeline-section');
+let playing = false;
+let playInterval = null;
+let speed = 150;
+
+function getComposerLocation(c, year) {
+  if (year < c.born || year > c.died) return null;
+  let loc = null;
+  for (const l of c.locations) {
+    if (year >= l.from && year <= l.to) { loc = l; break; }
+  }
+  if (!loc) {
+    let best = null;
+    for (const l of c.locations) {
+      if (l.to <= year && (!best || l.to > best.to)) best = l;
+    }
+    loc = best;
+  }
+  return loc;
+}
+
+function updateVisualization(year) {
+  yearDisplay.textContent = year;
+  let activeComps = [];
+  const cityCount = {};
+
+  composerMarkers.forEach(cm => {
+    const loc = getComposerLocation(cm.composer, year);
+    if (!loc || !cities[loc.city]) {
+      if (cm.visible) { map.removeLayer(cm.marker); cm.visible = false; }
+      return;
+    }
+
+    const ck = loc.city;
+    if (!cityCount[ck]) cityCount[ck] = 0;
+    const idx = cityCount[ck]++;
+
+    const base = cities[loc.city];
+    let oLat = 0, oLng = 0;
+    if (idx > 0) {
+      const angle = (idx * 137.5) * Math.PI / 180;
+      const dist = 0.3 + idx * 0.15;
+      oLat = Math.cos(angle) * dist;
+      oLng = Math.sin(angle) * dist * 1.5;
+    }
+    const pos = [base[0] + oLat, base[1] + oLng];
+
+    if (!cm.visible) {
+      cm.marker.setLatLng(pos).addTo(map);
+      cm.visible = true;
+    } else {
+      cm.marker.setLatLng(pos);
+    }
+
+    cm.marker.setPopupContent(`
+      <div class="popup-name">${cm.composer.name}</div>
+      <div class="popup-dates">${cm.composer.born}\u2013${cm.composer.died} | ${cm.composer.nationality}</div>
+      <div class="popup-info">${loc.note}</div>
+      <div class="popup-src">${cm.composer.src}</div>
+    `);
+
+    activeComps.push({
+      name: cm.composer.name, born: cm.composer.born, died: cm.composer.died,
+      color: cm.composer.color, city: loc.city, src: cm.composer.src,
+    });
+  });
+
+  // Active list
+  activeComps.sort((a, b) => a.name.localeCompare(b.name));
+  const initials = n => n.split(' ').map(w => w[0]).join('');
+  activeListDiv.innerHTML = activeComps.map(c => {
+    const url = getPortraitUrl(c.name);
+    const ini = initials(c.name);
+    const imgTag = url ? `<img src="${url}" onerror="this.remove()">` : '';
+    return `<div class="active-composer">
+      <div class="active-mini-portrait" style="border-color:${c.color}">
+        <div class="active-mini-initials" style="color:${c.color}">${ini}</div>
+        ${imgTag}
+      </div>
+      <div>
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-dates">${c.born}\u2013${c.died}</div>
+        <div class="comp-city">${c.city}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Timeline — stable rolling log: show all events up to current year
+  const pastEvents = timelineEvents.filter(e => e.year <= year);
+  // Only add new events, don't rebuild if we can append
+  if (pastEvents.length !== timelineDiv._lastCount) {
+    timelineDiv.innerHTML = pastEvents.map(e => {
+      const isCurrent = Math.abs(e.year - year) <= 1;
+      return `<div class="timeline-event ${e.type}" style="${isCurrent ? 'opacity:1' : 'opacity:0.5'}">
+        <span class="event-year">${e.year}</span>
+        <span class="event-text">${e.text}</span>
+        <span class="event-source">${e.src}</span>
+      </div>`;
+    }).join('');
+    timelineDiv._lastCount = pastEvents.length;
+    // Auto-scroll to bottom to show latest events
+    timelineDiv.scrollTop = timelineDiv.scrollHeight;
+  }
+  // Update opacity for current vs past events without rebuilding
+  const eventDivs = timelineDiv.querySelectorAll('.timeline-event');
+  eventDivs.forEach((div, i) => {
+    if (i < pastEvents.length) {
+      const isCurrent = Math.abs(pastEvents[i].year - year) <= 1;
+      div.style.opacity = isCurrent ? '1' : '0.5';
+    }
+  });
+}
+
+updateVisualization(1600);
+
+// ============================================================
+// CONTROLS
+// ============================================================
+slider.addEventListener("input", () => updateVisualization(parseInt(slider.value)));
+
+function startPlay() {
+  playing = true;
+  playBtn.innerHTML = "&#9646;&#9646; Pause";
+  if (parseInt(slider.value) >= 1750) slider.value = 1600;
+  playInterval = setInterval(() => {
+    let v = parseInt(slider.value) + 1;
+    if (v > 1750) { stopPlay(); return; }
+    slider.value = v;
+    updateVisualization(v);
+  }, speed);
+}
+function stopPlay() {
+  clearInterval(playInterval);
+  playing = false;
+  playBtn.innerHTML = "&#9654; Play";
+}
+
+playBtn.addEventListener("click", () => { playing ? stopPlay() : startPlay(); });
+
+const speeds = [
+  {label: '0.25x', ms: 600},
+  {label: '0.5x', ms: 300},
+  {label: '0.75x', ms: 200},
+  {label: '1x', ms: 150},
+  {label: '2x', ms: 80},
+  {label: '3x', ms: 40},
+];
+let speedIdx = 3; // start at 1x
+function cycleSpeed() {
+  speedIdx = (speedIdx + 1) % speeds.length;
+  speed = speeds[speedIdx].ms;
+  document.getElementById('speed-btn').textContent = speeds[speedIdx].label;
+  if (playing) { stopPlay(); startPlay(); }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === " ") { e.preventDefault(); playBtn.click(); }
+  if (e.key === "ArrowRight") { slider.value = Math.min(1750, parseInt(slider.value) + 1); updateVisualization(parseInt(slider.value)); }
+  if (e.key === "ArrowLeft") { slider.value = Math.max(1600, parseInt(slider.value) - 1); updateVisualization(parseInt(slider.value)); }
+});
+
+function toggleSources() {
+  const p = document.getElementById('sources-panel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+</script>
+</body>
+</html>
