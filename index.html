@@ -186,10 +186,23 @@
     padding: 8px 30px 10px;
     border-top: 1px solid #1e1e3a;
   }
-  #slider-container {
+  #slider-row {
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+  #btn-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 6px;
+  }
+  /* Desktop: single row layout */
+  @media (min-width: 769px) {
+    #controls { display: flex; align-items: center; gap: 12px; }
+    #slider-row { flex: 1; }
+    #btn-row { margin-top: 0; }
   }
   #year-slider {
     flex: 1;
@@ -323,17 +336,27 @@
     .legend-dot { width: 8px; height: 8px; }
     #right-panel div[style*="border-top"] { display: none; }
 
-    #controls { padding: 8px 12px 12px; }
-    #slider-container { gap: 8px; }
+    #controls { padding: 6px 12px 10px; }
+    #slider-row { gap: 8px; }
     .slider-label { font-size: 0.7rem; min-width: 30px; }
+    #year-slider { height: 6px; }
     #year-slider::-webkit-slider-thumb {
-      width: 24px; height: 24px;
+      width: 28px; height: 28px;
     }
-    #play-btn { padding: 6px 14px; font-size: 0.75rem; }
-    #speed-btn { padding: 4px 8px; font-size: 0.68rem; }
+    #btn-row { margin-top: 8px; gap: 12px; }
+    #play-btn {
+      padding: 10px 28px;
+      font-size: 0.9rem;
+      min-height: 42px;
+    }
+    #speed-btn {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      min-height: 42px;
+    }
 
-    #sources-toggle { bottom: 58px; right: 6px; font-size: 0.58rem; padding: 4px 8px; }
-    #sources-panel { bottom: 84px; right: 6px; max-width: 280px; max-height: 220px; }
+    #sources-toggle { bottom: 72px; right: 6px; font-size: 0.58rem; padding: 4px 8px; }
+    #sources-panel { bottom: 100px; right: 6px; max-width: 280px; max-height: 220px; }
 
     .ci-label { font-size: 8px; padding: 1px 3px; }
   }
@@ -448,10 +471,12 @@
 </div>
 
 <div id="controls">
-  <div id="slider-container">
+  <div id="slider-row">
     <span class="slider-label">1600</span>
     <input type="range" id="year-slider" min="1600" max="1750" value="1600" step="1">
     <span class="slider-label">1750</span>
+  </div>
+  <div id="btn-row">
     <button id="play-btn">&#9654; Play</button>
     <button id="speed-btn" onclick="cycleSpeed()">1x</button>
   </div>
