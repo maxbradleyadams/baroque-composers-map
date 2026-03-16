@@ -274,6 +274,81 @@
   .popup-src { color: #555568; font-size: 0.65rem; margin-top: 3px; }
   .leaflet-popup-close-button { color: #d4af37 !important; }
 
+  /* MOBILE TOGGLE BUTTON */
+  #mobile-panel-toggle {
+    display: none;
+    position: absolute;
+    top: 8px; left: 8px;
+    z-index: 600;
+    background: rgba(13,13,26,0.92);
+    border: 1.5px solid #d4af37;
+    color: #d4af37;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    letter-spacing: 0.5px;
+  }
+
+  /* MOBILE RESPONSIVE */
+  @media (max-width: 768px) {
+    body { overflow-x: hidden; }
+
+    #header h1 { font-size: 1rem; letter-spacing: 1.5px; }
+    #header p { font-size: 0.7rem; }
+    #year-display { font-size: 1.6rem; padding: 1px 0; }
+
+    #mobile-panel-toggle { display: block; }
+
+    #left-panel {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 260px;
+      z-index: 550;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    }
+    #left-panel.open { transform: translateX(0); }
+
+    #right-panel {
+      top: 6px; right: 6px;
+      padding: 6px 8px;
+    }
+    #right-panel h4 { font-size: 0.55rem; }
+    .legend-item { font-size: 0.55rem; gap: 3px; }
+    .legend-dot { width: 8px; height: 8px; }
+    #right-panel div[style*="border-top"] { display: none; }
+
+    #controls { padding: 8px 12px 12px; }
+    #slider-container { gap: 8px; }
+    .slider-label { font-size: 0.7rem; min-width: 30px; }
+    #year-slider::-webkit-slider-thumb {
+      width: 24px; height: 24px;
+    }
+    #play-btn { padding: 6px 14px; font-size: 0.75rem; }
+    #speed-btn { padding: 4px 8px; font-size: 0.68rem; }
+
+    #sources-toggle { bottom: 58px; right: 6px; font-size: 0.58rem; padding: 4px 8px; }
+    #sources-panel { bottom: 84px; right: 6px; max-width: 280px; max-height: 220px; }
+
+    .ci-label { font-size: 8px; padding: 1px 3px; }
+  }
+
+  @media (max-width: 480px) {
+    #header h1 { font-size: 0.85rem; letter-spacing: 1px; }
+    #header p { font-size: 0.62rem; }
+    #year-display { font-size: 1.3rem; }
+
+    #right-panel { padding: 4px 6px; }
+    #right-panel h4 { font-size: 0.5rem; margin-bottom: 2px; }
+    .legend-item { font-size: 0.5rem; margin: 1px 0; }
+    .legend-dot { width: 7px; height: 7px; }
+  }
+
   /* Composer marker icons */
   .composer-icon { background: none !important; border: none !important; }
   .ci-wrap {
@@ -329,6 +404,7 @@
 <div id="year-display">1600</div>
 
 <div id="main-content">
+  <button id="mobile-panel-toggle" onclick="togglePanel()">&#9776; Composers</button>
   <div id="left-panel">
     <div class="panel-section"><h4>Active Composers</h4></div>
     <div id="active-composers"></div>
@@ -876,13 +952,15 @@ timelineEvents.sort((a, b) => a.year - b.year);
 // ============================================================
 // INITIALIZE MAP
 // ============================================================
+const isMobile = window.innerWidth <= 768;
 const map = L.map('map', {
   center: [48.5, 10],
-  zoom: 5,
-  minZoom: 4,
+  zoom: isMobile ? 4 : 5,
+  minZoom: 3,
   maxZoom: 8,
   zoomControl: false,
   attributionControl: false,
+  tap: true,
 });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -1112,6 +1190,19 @@ function toggleSources() {
   const p = document.getElementById('sources-panel');
   p.style.display = p.style.display === 'block' ? 'none' : 'block';
 }
+
+function togglePanel() {
+  const panel = document.getElementById('left-panel');
+  panel.classList.toggle('open');
+}
+
+// Close panel when tapping outside on mobile
+document.getElementById('map').addEventListener('click', () => {
+  document.getElementById('left-panel').classList.remove('open');
+});
+
+// Fix Leaflet map size on orientation change / resize
+window.addEventListener('resize', () => { map.invalidateSize(); });
 </script>
 </body>
 </html>
