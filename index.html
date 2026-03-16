@@ -10,12 +10,14 @@
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { height: 100%; }
   body {
     font-family: 'Cormorant Garamond', Georgia, serif;
     background: #0d0d1a;
     color: #e0d6c8;
     overflow: hidden;
     height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
   }
@@ -308,11 +310,12 @@
 
   /* MOBILE RESPONSIVE */
   @media (max-width: 768px) {
-    body { overflow-x: hidden; }
+    body { overflow-x: hidden; height: 100vh; height: 100dvh; }
 
-    #header h1 { font-size: 1rem; letter-spacing: 1.5px; }
-    #header p { font-size: 0.7rem; }
-    #year-display { font-size: 1.6rem; padding: 1px 0; }
+    #header { padding: 6px 0 1px; }
+    #header h1 { font-size: 0.9rem; letter-spacing: 1.5px; }
+    #header p { font-size: 0.65rem; }
+    #year-display { font-size: 1.4rem; padding: 0; }
 
     #mobile-panel-toggle { display: block; }
 
@@ -336,23 +339,26 @@
     .legend-dot { width: 8px; height: 8px; }
     #right-panel div[style*="border-top"] { display: none; }
 
-    #controls { padding: 6px 12px 10px; }
-    #slider-row { gap: 8px; }
-    .slider-label { font-size: 0.7rem; min-width: 30px; }
+    #controls {
+      padding: 6px 10px 8px;
+      display: block !important;
+    }
+    #slider-row { gap: 6px; }
+    .slider-label { font-size: 0.65rem; min-width: 28px; }
     #year-slider { height: 6px; }
     #year-slider::-webkit-slider-thumb {
-      width: 28px; height: 28px;
+      width: 26px; height: 26px;
     }
-    #btn-row { margin-top: 8px; gap: 12px; }
+    #btn-row { margin-top: 6px; gap: 12px; }
     #play-btn {
-      padding: 10px 28px;
-      font-size: 0.9rem;
-      min-height: 42px;
+      padding: 8px 24px;
+      font-size: 0.85rem;
+      min-height: 38px;
     }
     #speed-btn {
-      padding: 8px 16px;
-      font-size: 0.8rem;
-      min-height: 42px;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      min-height: 38px;
     }
 
     #sources-toggle { bottom: 72px; right: 6px; font-size: 0.58rem; padding: 4px 8px; }
